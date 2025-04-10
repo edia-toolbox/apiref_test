@@ -1,0 +1,52 @@
+name: Create Subfolder Release
+
+on:
+  push:
+    tags:
+      - 'release-*'  # Triggers on any tag that starts with 'release-'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get tag name
+      id: get_tag
+      run: |
+        echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=${GITHUB_REF#refs/tags/release-}" >> $GITHUB_ENV
+
+    - name: Validate tag pattern
+      id: validate_tag
+      run: |
+        if [[ "$TAG_NAME" =~ ^release-.+ ]]; then
+          echo "valid=true" >> $GITHUB_OUTPUT
+        else
+          echo "valid=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Exit if tag is invalid
+      if: steps.validate_tag.outputs.valid != 'true'
+      run: exit 0
+
+    - name: Create release asset archive
+      run: |
+        mkdir release
+        cp -r Assets/com.my.repo release/
+        cd release
+        zip -r ../release-${RELEASE_NAME}.zip com.my.repo
+        cd ..
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        name: Release ${{ env.RELEASE_NAME }}
+        files: release-${{ env.RELEASE_NAME }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
