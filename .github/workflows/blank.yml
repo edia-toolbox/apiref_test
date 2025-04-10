@@ -37,7 +37,7 @@ jobs:
     - name: Create release asset archive
       run: |
         mkdir release
-        cp -r docs/df
+        cp -r docs/df release/
         cd release
         zip -r ../release-${RELEASE_NAME}.zip com.my.repo
         cd ..
